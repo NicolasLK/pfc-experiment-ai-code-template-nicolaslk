@@ -80,6 +80,8 @@ function findFirstError(s) {
     "]": "[",
     "}": "{",
   };
+
+  // Pilha armazena { char, position }
   const stack = []; // [abertura, indice]
   const openingChars = Object.values(map);
 
@@ -110,7 +112,8 @@ function findFirstError(s) {
 
   // Caso de erro 2: Unclosed opening bracket (pilha não vazia no final)
   if (stack.length > 0) {
-    const unclosed = stack[stack.length - 1]; // O parêntese aberto mais interno que não foi fechado
+    const unclosed = stack.at(-1);
+
     return {
       valid: false,
       error: "Unclosed opening bracket",
