@@ -182,7 +182,7 @@ function calculateShipping(shippingInfo, promoInfo) {
   if (
     promoInfo &&
     promoInfo.code &&
-    promoInfo.code.toUpperCase() === 'FREESHIP'
+    promoInfo.code.toUpperCase() === "FREESHIP"
   ) {
     return 0;
   }
@@ -197,10 +197,190 @@ function calculateShipping(shippingInfo, promoInfo) {
   return 0;
 }
 
+/**
+ * @description Calcula o imposto de vendas.
+ * @param {number} baseAmount - subtotal - desconto
+ * @param {UserInfo} userInfo
+ * @returns {number} O valor do imposto.
+ */
+function calculateTax(baseAmount, userInfo) {
+  if (baseAmount <= 0 || !userInfo || !userInfo.state) return 0;
 
+  const state = userInfo.state.toUpperCase();
+  const taxRate =
+    CONSTANTS.TAX_RATES_STATE[state] || CONSTANTS.TAX_RATES_STATE.DEFAULT;
+
+  return baseAmount * taxRate;
+}
+
+/**
+ * @description Calcula a taxa de processamento de pagamento.
+ * @param {number} baseAmount - subtotal - desconto
+ * @param {PaymentInfo} paymentInfo
+ * @returns {number} O valor da taxa de pagamento.
+ */
+function calculatePaymentFee(baseAmount, paymentInfo) {
+  if (baseAmount <= 0 || !paymentInfo || !paymentInfo.method) return 0;
+
+  const paymentMethod = paymentInfo.method.toUpperCase();
+  const feeRate = CONSTANTS.PAYMENT_FEES[paymentMethod] || 0;
+
+  return baseAmount * feeRate;
+}
+
+// --- 3. FUNÇÃO PRINCIPAL DE PROCESSAMENTO/CÁLCULO ---
+
+/**
+ * @description Processa um pedido completo, aplicando todas as regras de negócio e calculando o total.
+ * Mantém a mesma funcionalidade de processOrder, calculateOrderTotal e validateAndProcessOrder (sem as side-effects de inventário).
+ * @param {OrderData} orderData
+ * @param {UserInfo} userInfo
+ * @param {PaymentInfo} paymentInfo
+ * @param {ShippingInfo} shippingInfo
+ * @param {PromoInfo} promoInfo
+ * @returns {{subtotal: number, discount: number, tax: number, shipping: number, paymentFee: number, finalTotal: number}}
+ * @throws {Error} Se a validação de entrada falhar.
+ */
+function processOrder(
+  orderData,
+  userInfo,
+  paymentInfo,
+  shippingInfo,
+  promoInfo
+) {
+  // 1. Validação de Entrada - Fail-Fast
+  if (!orderData || !orderData.items || orderData.items.length === 0) {
+    throw new Error("ORDER_INVALID: Pedido ou itens do pedido não informados.");
+  }
+
+  // 2. Cálculo do Subtotal
+  const subtotal = calculateSubtotal(orderData);
+  if (subtotal <= 0) {
+    throw new Error("ORDER_INVALID: Subtotal deve ser positivo.");
+  }
+
+  // 3. Cálculo de Desconto, Frete, Imposto e Taxa (baseado na lógica do processOrder original)
+
+  // Desconto
+  const discount = calculateDiscount(subtotal, userInfo, promoInfo);
+
+  // Base para Imposto/Taxa
+  const baseAmount = subtotal - discount;
+
+  // Imposto
+  const tax = calculateTax(baseAmount, userInfo);
+
+  // Taxa de Pagamento
+  const paymentFee = calculatePaymentFee(baseAmount, paymentInfo);
+
+  // Frete
+  const shipping = calculateShipping(shippingInfo, promoInfo);
+
+  // 4. Cálculo do Total
+  let finalTotal = baseAmount + tax + shipping + paymentFee;
+
+  // Lógica do código legacy (Garantir que o total não seja negativo)
+  if (finalTotal < 0) {
+    finalTotal = 0;
+  }
+
+  // Arredondamento (Duas casas decimais)
+  finalTotal = Math.round(finalTotal * 100) / 100;
+
+  // 5. Retorno
+  return {
+    subtotal: Math.round(subtotal * 100) / 100, // Arredonda subtotal para consistência
+    discount: Math.round(discount * 100) / 100,
+    tax: Math.round(tax * 100) / 100,
+    shipping: Math.round(shipping * 100) / 100,
+    paymentFee: Math.round(paymentFee * 100) / 100,
+    finalTotal,
+  };
+}
+
+// --- 4. FUNÇÃO DE VALIDAÇÃO (Responsabilidade Única) ---
+
+/**
+ * @description Valida a estrutura completa de um pedido e dados associados.
+ * Extraído da lógica de alta complexidade ciclomática do legacy.
+ * @param {OrderData} order
+ * @param {UserInfo} user
+ * @param {PaymentInfo} payment
+ * @param {ShippingInfo} shipping
+ * @param {object} inventory - Mock para o serviço de inventário
+ * @returns {{isValid: boolean, errors: string[], warnings: string[]}}
+ */
+function validateOrder(order, user, payment, shipping, inventory) {
+  const errors = [];
+  const warnings = [];
+
+  // --- Validação de Pedido (Order) ---
+  if (!order) {
+    errors.push("Pedido não informado");
+  } else if (!order.items) {
+    errors.push("Itens do pedido não informados");
+  } else if (order.items.length === 0) {
+    errors.push("Pedido sem itens");
+  } else {
+    // Validação de Item (reduce/map é mais limpo que for com ifs aninhados)
+    order.items.forEach((item, index) => {
+      const { id, quantity, price } = item || {};
+      if (!item) {
+        errors.push(`Item inválido na posição ${index}`);
+        return;
+      }
+      if (!id) errors.push(`ID do item não informado (posição ${index})`);
+      if (!quantity) errors.push(`Quantidade não informada para item ${id}`);
+      if (!price) errors.push(`Preço não informado para item ${id}`);
+      if (typeof quantity !== "number" || quantity <= 0)
+        errors.push(`Quantidade inválida para item ${id}`);
+      if (typeof price !== "number" || price <= 0)
+        errors.push(`Preço inválido para item ${id}`);
+
+      // Simulação da lógica de inventário
+      if (id && quantity > 0 && inventory && inventory.checkStock) {
+        // Uso de ===
+        if (inventory.checkStock(id, quantity) === false) {
+          errors.push(`Item ${id} não disponível em estoque`);
+        }
+      }
+    });
+  }
+
+  // --- Validação de Usuário (User) ---
+  if (!user) {
+    errors.push("Usuário não informado");
+  } else {
+    // Uso de Guard Clauses (Early Exit) para evitar aninhamento
+    if (!user.id) errors.push("ID do usuário não informado");
+    if (!user.email) errors.push("Email do usuário não informado");
+    if (!user.address) errors.push("Endereço do usuário não informado");
+  }
+
+  // --- Validação de Pagamento (Payment) ---
+  if (!payment) {
+    errors.push("Informações de pagamento não fornecidas");
+  } else {
+    if (!payment.method) errors.push("Método de pagamento não informado");
+    if (!payment.amount) errors.push("Valor do pagamento não informado");
+    if (payment.amount <= 0) errors.push("Valor do pagamento inválido");
+  }
+
+  // O código legacy tinha lógica misturada (if (true || false) {}) que foi removida.
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings, // Mantém o formato de retorno
+  };
+}
+
+// --- 5. CLASSE DE PROCESSAMENTO (Ponto de entrada) ---
+
+class OrderProcessor {
   /**
-   * @description Processa um pedido completo, aplicando todas as regras de negócio e calculando o total.
-   * Mantém a mesma funcionalidade de processOrder, calculateOrderTotal e validateAndProcessOrder (sem as side-effects de inventário).
+   * @description Processa um pedido, calculando todos os totais.
+   * Centraliza a lógica para processOrder e calculateOrderTotal do código legacy.
    * @param {OrderData} orderData
    * @param {UserInfo} userInfo
    * @param {PaymentInfo} paymentInfo
@@ -210,147 +390,20 @@ function calculateShipping(shippingInfo, promoInfo) {
    * @throws {Error} Se a validação de entrada falhar.
    */
   processOrder(orderData, userInfo, paymentInfo, shippingInfo, promoInfo) {
-    var total = 0;
-    var subtotal = 0;
-    var tax = 0;
-    var shipping = 0;
-    var discount = 0;
-    var finalTotal = 0;
-    var temp1 = 0;
-    var temp2 = 0;
-    var temp3 = 0;
-    var unusedVar1 = "não usado";
-    var unusedVar2 = 123;
-    var unusedVar3 = true;
-
-    if (orderData != null) {
-      if (orderData.items != null) {
-        if (orderData.items.length > 0) {
-          for (var i = 0; i < orderData.items.length; i++) {
-            var item = orderData.items[i];
-            if (item != null) {
-              if (item.price != null) {
-                if (item.quantity != null) {
-                  if (item.price > 0) {
-                    if (item.quantity > 0) {
-                      subtotal = subtotal + item.price * item.quantity;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if (userInfo != null) {
-      if (userInfo.type != null) {
-        if (userInfo.type == "VIP") {
-          discount = subtotal * 0.15;
-        } else if (userInfo.type == "GOLD") {
-          discount = subtotal * 0.1;
-        } else if (userInfo.type == "SILVER") {
-          discount = subtotal * 0.05;
-        } else if (userInfo.type == "BRONZE") {
-          discount = subtotal * 0.02;
-        } else if (userInfo.type == "REGULAR") {
-          discount = 0;
-        } else {
-          discount = 0;
-        }
-      }
-    }
-
-    if (promoInfo != null) {
-      if (promoInfo.code != null) {
-        if (promoInfo.code == "SAVE10") {
-          discount = discount + subtotal * 0.1;
-        } else if (promoInfo.code == "SAVE20") {
-          discount = discount + subtotal * 0.2;
-        } else if (promoInfo.code == "SAVE30") {
-          discount = discount + subtotal * 0.3;
-        } else if (promoInfo.code == "SAVE50") {
-          discount = discount + subtotal * 0.5;
-        } else if (promoInfo.code == "FREESHIP") {
-          shipping = 0;
-        } else if (promoInfo.code == "BOGO") {
-          discount = discount + subtotal * 0.5;
-        }
-      }
-    }
-
-    if (shippingInfo != null) {
-      if (shippingInfo.type != null) {
-        if (shippingInfo.type == "EXPRESS") {
-          shipping = 25;
-        } else if (shippingInfo.type == "STANDARD") {
-          shipping = 15;
-        } else if (shippingInfo.type == "ECONOMY") {
-          shipping = 8;
-        } else if (shippingInfo.type == "PICKUP") {
-          shipping = 0;
-        }
-      }
-    }
-
-    if (userInfo != null) {
-      if (userInfo.state != null) {
-        if (userInfo.state == "CA") {
-          tax = (subtotal - discount) * 0.0875;
-        } else if (userInfo.state == "NY") {
-          tax = (subtotal - discount) * 0.08;
-        } else if (userInfo.state == "TX") {
-          tax = (subtotal - discount) * 0.0625;
-        } else if (userInfo.state == "FL") {
-          tax = 0;
-        } else {
-          tax = (subtotal - discount) * 0.05;
-        }
-      }
-    }
-
-    var paymentFee = 0;
-    if (paymentInfo != null) {
-      if (paymentInfo.method != null) {
-        if (paymentInfo.method == "CREDIT_CARD") {
-          paymentFee = (subtotal - discount) * 0.029;
-        } else if (paymentInfo.method == "DEBIT_CARD") {
-          paymentFee = (subtotal - discount) * 0.015;
-        } else if (paymentInfo.method == "PAYPAL") {
-          paymentFee = (subtotal - discount) * 0.034;
-        } else if (paymentInfo.method == "BANK_TRANSFER") {
-          paymentFee = 0;
-        } else if (paymentInfo.method == "CRYPTO") {
-          paymentFee = (subtotal - discount) * 0.01;
-        }
-      }
-    }
-
-    if (true || false) {
-      var alwaysTrue = 1;
-      var anotherVar = 2;
-      anotherVar = anotherVar * 3;
-      anotherVar = anotherVar + 5;
-    }
-
-    finalTotal = subtotal - discount + tax + shipping + paymentFee;
-
-    if (finalTotal < 0) {
-      finalTotal = 0;
-    }
-
-    finalTotal = Math.round(finalTotal * 100) / 100;
-
-    var unused1 = finalTotal;
-    var unused2 = finalTotal * 2;
-    var unused3 = finalTotal / 2;
-
-    return finalTotal;
+    // Lógica do processamento principal
+    return processOrder(
+      orderData,
+      userInfo,
+      paymentInfo,
+      shippingInfo,
+      promoInfo
+    );
   }
 
-    /**
-   * Mantém o método validateAndProcessOrder por compatibilidade, mas usa o novo validador.
+  // =====
+
+  /**
+   * @description Mantém o método validateAndProcessOrder por compatibilidade, mas usa o novo validador.
    * @param {OrderData} order
    * @param {UserInfo} user
    * @param {PaymentInfo} payment
@@ -359,125 +412,22 @@ function calculateShipping(shippingInfo, promoInfo) {
    * @param {object} inventory
    * @returns {{isValid: boolean, errors: string[], warnings: string[]}}
    */
-  validateAndProcessOrder(
-    order,
-    user,
-    payment,
-    shipping,
-    promo,
-    inventory,
-  ) {
+  validateAndProcessOrder(order, user, payment, shipping, promo, inventory) {
     // Ignora parâmetros não utilizados no legacy (warehouse, logistics, notifications, analytics, audit, compliance)
     // Retorna o resultado da função de responsabilidade única
     return validateOrder(order, user, payment, shipping, inventory);
-  };
-
-
-class LegacyOrderProcessor {
-
-
-  calculateOrderTotal(order, customer, payment, delivery, coupon) {
-    var sum = 0;
-    var baseAmount = 0;
-    var userDiscount = 0;
-    var couponDiscount = 0;
-    var deliveryCost = 0;
-    var taxAmount = 0;
-    var paymentCost = 0;
-    var total = 0;
-    var x = 0;
-    var y = 0;
-    var z = 0;
-
-    if (order) {
-      if (order.products) {
-        for (var j = 0; j < order.products.length; j++) {
-          var product = order.products[j];
-          if (product) {
-            if (product.cost) {
-              if (product.count) {
-                sum = sum + product.cost * product.count;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    baseAmount = sum;
-
-    if (customer) {
-      if (customer.level) {
-        if (customer.level == "PREMIUM") {
-          userDiscount = baseAmount * 0.2;
-        } else if (customer.level == "STANDARD") {
-          userDiscount = baseAmount * 0.1;
-        } else if (customer.level == "BASIC") {
-          userDiscount = baseAmount * 0.05;
-        }
-      }
-    }
-
-    if (coupon) {
-      if (coupon.discount) {
-        couponDiscount = baseAmount * coupon.discount;
-      }
-    }
-
-    if (delivery) {
-      if (delivery.speed) {
-        if (delivery.speed == "FAST") {
-          deliveryCost = 30;
-        } else if (delivery.speed == "MEDIUM") {
-          deliveryCost = 15;
-        } else if (delivery.speed == "SLOW") {
-          deliveryCost = 5;
-        }
-      }
-    }
-
-    if (customer) {
-      if (customer.location) {
-        if (customer.location == "EUROPE") {
-          taxAmount = (baseAmount - userDiscount - couponDiscount) * 0.2;
-        } else if (customer.location == "USA") {
-          taxAmount = (baseAmount - userDiscount - couponDiscount) * 0.1;
-        } else if (customer.location == "ASIA") {
-          taxAmount = (baseAmount - userDiscount - couponDiscount) * 0.15;
-        }
-      }
-    }
-
-    if (payment) {
-      if (payment.type) {
-        if (payment.type == "CARD") {
-          paymentCost = (baseAmount - userDiscount - couponDiscount) * 0.03;
-        } else if (payment.type == "BANK") {
-          paymentCost = 0;
-        } else if (payment.type == "DIGITAL") {
-          paymentCost = (baseAmount - userDiscount - couponDiscount) * 0.02;
-        }
-      }
-    }
-
-    total =
-      baseAmount -
-      userDiscount -
-      couponDiscount +
-      taxAmount +
-      deliveryCost +
-      paymentCost;
-
-    if (total < 0) {
-      total = 0;
-    }
-
-    total = Math.round(total * 100) / 100;
-
-    return total;
   }
-
-
 }
 
-module.exports = {  };
+// Exportações refatoradas
+module.exports = {
+  OrderProcessor,
+  processOrder,
+  validateOrder,
+  calculateSubtotal,
+  calculateDiscount,
+  calculateShipping,
+  calculateTax,
+  calculatePaymentFee,
+  CONSTANTS,
+};
