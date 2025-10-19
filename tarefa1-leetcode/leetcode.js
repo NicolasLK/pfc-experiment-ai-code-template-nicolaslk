@@ -72,9 +72,58 @@ function isValid(s) {
   return stack.length === 0;
 }
 
+/**
+ * Encontra o primeiro erro de parênteses na string.
+ * @param {string} s A string de entrada.
+ * @returns {{ valid: boolean, error: string|null, position: number, character: string }} Objeto com detalhes do erro ou sucesso.
+ */
 function findFirstError(s) {
-  // Implementar aqui
-  return { valid: false, error: null, position: 0, character: "" };
+  const map = {
+    ")": "(",
+    "]": "[",
+    "}": "{",
+  };
+  const stack = []; // [abertura, indice]
+  const openingChars = Object.values(map);
+
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+
+    // Se for um parêntese de abertura, empilha o caractere e a sua posição
+    if (openingChars.includes(char)) {
+      stack.push({ char, position: i });
+    }
+    // Se for um parêntese de fechamento
+    else if (map[char]) {
+      const topElement = stack.pop();
+
+      // Caso de erro 1: Fechamento sem abertura (pilha vazia) OU Mismatch
+      if (!topElement || topElement.char !== map[char]) {
+        return {
+          valid: false,
+          error: "Unmatched closing bracket",
+          position: i, // Posição do parêntese de fechamento problemático
+          character: char,
+        };
+      }
+      // Se houver match, continua
+    }
+    // Ignora outros caracteres se houverem
+  }
+
+  // Caso de erro 2: Unclosed opening bracket (pilha não vazia no final)
+  if (stack.length > 0) {
+    const unclosed = stack[stack.length - 1]; // O parêntese aberto mais interno que não foi fechado
+    return {
+      valid: false,
+      error: "Unclosed opening bracket",
+      position: unclosed.position,
+      character: unclosed.char,
+    };
+  }
+
+  // Se a pilha estiver vazia, a string é válida
+  return { valid: true, error: null, position: s.length, character: "" };
 }
 
 module.exports = { isValid, findFirstError };
