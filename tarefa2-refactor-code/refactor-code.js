@@ -1,3 +1,5 @@
+console.log("Início Tarefa 2 - Gemini");
+
 class LegacyOrderProcessor {
   processOrder(orderData, userInfo, paymentInfo, shippingInfo, promoInfo) {
     var total = 0;
@@ -23,7 +25,7 @@ class LegacyOrderProcessor {
                 if (item.quantity != null) {
                   if (item.price > 0) {
                     if (item.quantity > 0) {
-                      subtotal = subtotal + (item.price * item.quantity);
+                      subtotal = subtotal + item.price * item.quantity;
                     }
                   }
                 }
@@ -39,7 +41,7 @@ class LegacyOrderProcessor {
         if (userInfo.type == "VIP") {
           discount = subtotal * 0.15;
         } else if (userInfo.type == "GOLD") {
-          discount = subtotal * 0.10;
+          discount = subtotal * 0.1;
         } else if (userInfo.type == "SILVER") {
           discount = subtotal * 0.05;
         } else if (userInfo.type == "BRONZE") {
@@ -55,17 +57,17 @@ class LegacyOrderProcessor {
     if (promoInfo != null) {
       if (promoInfo.code != null) {
         if (promoInfo.code == "SAVE10") {
-          discount = discount + (subtotal * 0.1);
+          discount = discount + subtotal * 0.1;
         } else if (promoInfo.code == "SAVE20") {
-          discount = discount + (subtotal * 0.2);
+          discount = discount + subtotal * 0.2;
         } else if (promoInfo.code == "SAVE30") {
-          discount = discount + (subtotal * 0.3);
+          discount = discount + subtotal * 0.3;
         } else if (promoInfo.code == "SAVE50") {
-          discount = discount + (subtotal * 0.5);
+          discount = discount + subtotal * 0.5;
         } else if (promoInfo.code == "FREESHIP") {
           shipping = 0;
         } else if (promoInfo.code == "BOGO") {
-          discount = discount + (subtotal * 0.5);
+          discount = discount + subtotal * 0.5;
         }
       }
     }
@@ -115,19 +117,6 @@ class LegacyOrderProcessor {
           paymentFee = (subtotal - discount) * 0.01;
         }
       }
-    }
-
-    if (false) {
-      console.log("Este código nunca executa");
-      var deadCode = 100;
-      deadCode = deadCode * 2;
-      deadCode = deadCode + 50;
-    }
-
-    while (false) {
-      console.log("Loop infinito que nunca executa");
-      var infiniteLoop = 0;
-      infiniteLoop = infiniteLoop + 1;
     }
 
     if (true || false) {
@@ -236,7 +225,13 @@ class LegacyOrderProcessor {
       }
     }
 
-    total = baseAmount - userDiscount - couponDiscount + taxAmount + deliveryCost + paymentCost;
+    total =
+      baseAmount -
+      userDiscount -
+      couponDiscount +
+      taxAmount +
+      deliveryCost +
+      paymentCost;
 
     if (total < 0) {
       total = 0;
@@ -247,7 +242,20 @@ class LegacyOrderProcessor {
     return total;
   }
 
-  validateAndProcessOrder(order, user, payment, shipping, promo, inventory, warehouse, logistics, notifications, analytics, audit, compliance) {
+  validateAndProcessOrder(
+    order,
+    user,
+    payment,
+    shipping,
+    promo,
+    inventory,
+    warehouse,
+    logistics,
+    notifications,
+    analytics,
+    audit,
+    compliance
+  ) {
     var isValid = true;
     var errors = [];
     var warnings = [];
@@ -270,7 +278,9 @@ class LegacyOrderProcessor {
                           if (inventory.checkStock) {
                             if (inventory.checkStock(item.id, item.quantity)) {
                             } else {
-                              errors.push("Item " + item.id + " não disponível");
+                              errors.push(
+                                "Item " + item.id + " não disponível"
+                              );
                               isValid = false;
                             }
                           }
@@ -353,12 +363,6 @@ class LegacyOrderProcessor {
     } else {
       errors.push("Informações de pagamento não fornecidas");
       isValid = false;
-    }
-
-    if (false) {
-      console.log("Código morto");
-      var dead = 100;
-      dead = dead + 50;
     }
 
     if (true || false) {
