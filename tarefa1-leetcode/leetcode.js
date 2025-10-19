@@ -32,6 +32,7 @@ console.log("Início Tarefa 1 - Gemini");
 
 /**
  * @description Determina se a string de entrada é válida (todos os parênteses são fechados corretamente e na ordem certa).
+ * Usa for...of para melhor legibilidade.
  * @param {string} s A string de entrada contendo apenas '(', ')', '{', '}', '[' e ']'.
  * @returns {boolean} True se a string for válida, False caso contrário.
  */
@@ -97,17 +98,24 @@ function findFirstError(s) {
       const topElement = stack.pop();
 
       // Caso de erro 1: Fechamento sem abertura (pilha vazia) OU Mismatch
-      if (!topElement || topElement.char !== map[char]) {
+      if (!topElement) {
+        // Parêntese fechado sem par de abertura
         return {
           valid: false,
-          error: "Unmatched closing bracket",
-          position: i, // Posição do parêntese de fechamento problemático
+          error: "Parêntese fechado sem par de abertura",
+          position: i,
+          character: char,
+        };
+      } else if (topElement.char !== map[char]) {
+        // Mismatch: Abertura e fechamento incompatíveis
+        return {
+          valid: false,
+          error: `Parêntese de fechamento '${char}' não corresponde ao de abertura esperado '${map[char]}'`,
+          position: i,
           character: char,
         };
       }
-      // Se houver match, continua
     }
-    // Ignora outros caracteres se houverem
   }
 
   // Caso de erro 2: Unclosed opening bracket (pilha não vazia no final)
@@ -116,7 +124,7 @@ function findFirstError(s) {
 
     return {
       valid: false,
-      error: "Unclosed opening bracket",
+      error: `Parêntese de abertura '${unclosed.char}' não foi fechado`,
       position: unclosed.position,
       character: unclosed.char,
     };
