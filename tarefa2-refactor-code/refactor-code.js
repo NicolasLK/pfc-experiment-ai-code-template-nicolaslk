@@ -208,8 +208,9 @@ function calculateTax(baseAmount, userInfo) {
   if (baseAmount <= 0 || !userInfo || !userInfo.state) return 0;
 
   const state = userInfo.state.toUpperCase();
-  const taxRate =
-    CONSTANTS.TAX_RATES_STATE[state] || CONSTANTS.TAX_RATES_STATE.DEFAULT;
+  const stateRates = CONSTANTS.TAX_RATES_STATE;
+
+  const taxRate = state in stateRates ? stateRates[state] : stateRates.DEFAULT;
 
   return baseAmount * taxRate;
 }

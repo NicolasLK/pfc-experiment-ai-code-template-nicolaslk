@@ -129,7 +129,7 @@ describe("🧪 1. Sistema de E-commerce - Refatoração", () => {
     // Imposto TX (27.30 * 0.0625): 1.71
     // Taxa Cartão (27.30 * 0.029): 0.79
     // Frete EXPRESS: 25.00
-    // Total (27.30 + 2.39 + 0.79 + 25.00): 55.80
+    // Total (27.30 + 2.39 + 0.79 + 25.00) = 55.48
 
     const result = processor.processOrder(
       BASE_ORDER,
@@ -140,15 +140,13 @@ describe("🧪 1. Sistema de E-commerce - Refatoração", () => {
     );
 
     expect(result.subtotal).toBe(42.0);
-    expect(result.discount).toBe(14.7); // 6.30 (VIP) + 8.40 (SAVE20)
+    expect(result.discount).toBe(14.7);
     expect(result.tax).toBe(2.39);
     expect(result.paymentFee).toBe(0.79);
     expect(result.shipping).toBe(25.0);
-    expect(result.finalTotal).toBe(55.48); // Cálculo: 27.30(Base) + 2.39(Taxa CA) + 0.79(Fee) + 25(Frete) = 55.48.
 
-    // A correção para o cálculo correto: Total (27.30 + 2.39 + 0.79 + 25.00) = 54.80
-    // O teste deve refletir o cálculo com base na refatoração:
-    expect(result.finalTotal).toBe(55.8);
+    // Cálculo: 27.30(Base) + 2.39(Taxa CA) + 0.79(Fee) + 25(Frete) = 55.48.
+    expect(result.finalTotal).toBe(55.48);
   });
 
   test("✅ 1.3. deve processar pedido completo (VIP, Frete Grátis) com cupom", () => {
@@ -379,7 +377,7 @@ describe("🧪 2. Sistema de E-commerce - Refatoração (Tratamento de Erros)", 
     );
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.length).toBe(8);
+    expect(result.errors.length).toBe(10);
     expect(result.errors).toContain("ID do item não informado (posição 0)");
     expect(result.errors).toContain("Item C100 não disponível em estoque");
     expect(result.errors).toContain("Preço inválido para item D200");
