@@ -50,15 +50,12 @@ function isValid(s) {
    */
   const stack = [];
 
-  for (let i = 0; i < s.length; i++) {
-    const char = s[i];
-
+  for (const char of s) {
     // Se o caractere for um parêntese de fechamento
     if (map[char]) {
       const topElement = stack.pop();
 
-      // Condição 1: A pilha está vazia (fechamento sem abertura) OU
-      // Condição 2: O parêntese de abertura no topo da pilha não corresponde ao parêntese de fechamento atual
+      // Verifica Mismatch ou pilha vazia
       if (!topElement || topElement !== map[char]) {
         return false;
       }
