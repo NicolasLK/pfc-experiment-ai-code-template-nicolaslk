@@ -204,6 +204,7 @@ function calculateShipping(shippingInfo, promoInfo) {
  * @returns {number} O valor do imposto.
  */
 function calculateTax(baseAmount, userInfo) {
+  // Se userInfo.state for undefined/null, retorna 0. Mas se for string, continua.
   if (baseAmount <= 0 || !userInfo || !userInfo.state) return 0;
 
   const state = userInfo.state.toUpperCase();

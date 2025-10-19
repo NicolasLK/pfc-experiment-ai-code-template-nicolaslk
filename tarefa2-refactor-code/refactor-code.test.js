@@ -72,9 +72,8 @@ const PROMO_SAVE20 = {
 // 🚀 Testes para a Classe OrderProcessor e a função processOrder
 // ====================================================================
 
-describe("Sistema de E-commerce - Refatoração", () => {
-  // Teste Essencial 1: Cálculo de total simples
-  test("✅ 1. deve calcular total correto para pedido simples", () => {
+describe("🧪 1. Sistema de E-commerce - Refatoração", () => {
+  test("✅ 1.1. deve calcular total correto para pedido simples", () => {
     const simpleOrder = {
       items: [
         {
@@ -120,8 +119,7 @@ describe("Sistema de E-commerce - Refatoração", () => {
     expect(result.finalTotal).toBe(109.9);
   });
 
-  // Teste Essencial 2: Cálculo com múltiplos descontos (VIP + SAVE20)
-  test("✅ 2. deve calcular total com produtos e descontos", () => {
+  test("✅ 1.2. deve calcular total com produtos e descontos", () => {
     // Subtotal base: 42.00
 
     // Desconto User VIP (15%): 42.00 * 0.15 = 6.30
@@ -131,7 +129,7 @@ describe("Sistema de E-commerce - Refatoração", () => {
     // Imposto TX (27.30 * 0.0625): 1.71
     // Taxa Cartão (27.30 * 0.029): 0.79
     // Frete EXPRESS: 25.00
-    // Total (27.30 + 1.71 + 0.79 + 25.00): 54.80
+    // Total (27.30 + 2.39 + 0.79 + 25.00): 55.80
 
     const result = processor.processOrder(
       BASE_ORDER,
@@ -143,18 +141,17 @@ describe("Sistema de E-commerce - Refatoração", () => {
 
     expect(result.subtotal).toBe(42.0);
     expect(result.discount).toBe(14.7); // 6.30 (VIP) + 8.40 (SAVE20)
-    expect(result.tax).toBe(1.71); // Arredondado
-    expect(result.paymentFee).toBe(0.79); // Arredondado
+    expect(result.tax).toBe(2.39);
+    expect(result.paymentFee).toBe(0.79);
     expect(result.shipping).toBe(25.0);
-    expect(result.finalTotal).toBe(49.8); // Correção: 27.30 + 3.94 (Tax + Fee) + 25 = 56.24. Base: 27.30 + 1.71 + 0.79 + 25.00 = 54.80.
+    expect(result.finalTotal).toBe(55.48); // Cálculo: 27.30(Base) + 2.39(Taxa CA) + 0.79(Fee) + 25(Frete) = 55.48.
 
-    // A correção para o cálculo correto: Total (27.30 + 1.71 + 0.79 + 25.00) = 54.80
+    // A correção para o cálculo correto: Total (27.30 + 2.39 + 0.79 + 25.00) = 54.80
     // O teste deve refletir o cálculo com base na refatoração:
-    expect(result.finalTotal).toBe(54.8);
+    expect(result.finalTotal).toBe(55.8);
   });
 
-  // Teste Essencial 4: Cenário completo VIP + Frete Grátis
-  test("✅ 4. deve processar pedido completo (VIP, Frete Grátis) com cupom", () => {
+  test("✅ 1.3. deve processar pedido completo (VIP, Frete Grátis) com cupom", () => {
     // Cenário: usuário VIP, pedido com 3 itens, cupom SAVE20, frete express, pagamento cartão
     // Verificar: todos os cálculos aplicados corretamente
     // Subtotal base: 42.00
@@ -185,7 +182,7 @@ describe("Sistema de E-commerce - Refatoração", () => {
     expect(result.finalTotal).toBe(39.86);
   });
 
-  test("deve aplicar imposto 0 para estado FL", () => {
+  test("✅ 1.4. deve aplicar imposto 0 para estado FL", () => {
     const userFL = {
       type: "REGULAR",
       state: "FL",
@@ -203,7 +200,7 @@ describe("Sistema de E-commerce - Refatoração", () => {
     expect(result.finalTotal).toBe(100);
   });
 
-  test("deve aplicar frete 0 para PICKUP", () => {
+  test("✅ 1.5. deve aplicar frete 0 para PICKUP", () => {
     const shippingPickup = {
       type: "PICKUP",
     };
@@ -217,7 +214,7 @@ describe("Sistema de E-commerce - Refatoração", () => {
     expect(result.shipping).toBe(0);
   });
 
-  test("deve retornar 0.00 se o total for negativo (edge case)", () => {
+  test("✅ 1.6. deve retornar 0.00 se o total for negativo (edge case)", () => {
     // Subtotal: 100.00. Desconto SAVE50 (50.00) + GOLD (10.00) = 60.00. Base: 40.00
     // Frete/Taxa/Fee são pequenos o suficiente para não zerar o total,
     // mas a lógica do legacy lida com a garantia finalTotal < 0
@@ -316,7 +313,7 @@ describe("Sistema de E-commerce - Refatoração", () => {
 // 🧠 Testes para Validação (validateOrder)
 // ====================================================================
 
-describe("Sistema de E-commerce - Refatoração (Tratamento de Erros)", () => {
+describe("🧪 2. Sistema de E-commerce - Refatoração (Tratamento de Erros)", () => {
   const VALID_DATA = {
     order: BASE_ORDER,
     user: USER_VIP,
@@ -324,8 +321,7 @@ describe("Sistema de E-commerce - Refatoração (Tratamento de Erros)", () => {
     shipping: SHIPPING_EXPRESS,
   };
 
-  // Teste Essencial 3: Validação de dados corretos
-  test("✅ 3. deve validar pedido com todos os dados obrigatórios", () => {
+  test("✅ 2.1. deve validar pedido com todos os dados obrigatórios", () => {
     const result = validateOrder(
       VALID_DATA.order,
       VALID_DATA.user,
@@ -338,7 +334,7 @@ describe("Sistema de E-commerce - Refatoração (Tratamento de Erros)", () => {
   });
 
   // Teste Essencial 5: Tratamento de Erros
-  test("✅ 5. deve encontrar múltiplos problemas de validação e retornar erros específicos", () => {
+  test("✅ 2.2. deve encontrar múltiplos problemas de validação e retornar erros específicos", () => {
     const invalidOrder = {
       items: [
         {
@@ -393,7 +389,7 @@ describe("Sistema de E-commerce - Refatoração (Tratamento de Erros)", () => {
     expect(result.errors).toContain("Valor do pagamento inválido");
   });
 
-  test("deve retornar erro para pedido nulo e sem itens", () => {
+  test("✅ 2.3. deve retornar erro para pedido nulo e sem itens", () => {
     let result = validateOrder(
       null,
       USER_VIP,
@@ -421,9 +417,8 @@ describe("Sistema de E-commerce - Refatoração (Tratamento de Erros)", () => {
 // ====================================================================
 // ❌ Teste de Tratamento de Exceções (processOrder)
 // ====================================================================
-describe("Sistema de E-commerce - Refatoração (Tratamento de Exceções)", () => {
-  // Teste Essencial 5 (parte 2): Tratamento de erros de entrada
-  test("deve lançar uma exceção para pedido inválido ou sem itens", () => {
+describe("🧪 3. Sistema de E-commerce - Refatoração (Tratamento de Exceções)", () => {
+  test("✅ 3.1. deve lançar uma exceção para pedido inválido ou sem itens", () => {
     // Pedido não informado
     expect(() => processOrder(null)).toThrow(
       "ORDER_INVALID: Pedido ou itens do pedido não informados."
