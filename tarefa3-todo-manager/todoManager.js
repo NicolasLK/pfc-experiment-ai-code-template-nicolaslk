@@ -72,6 +72,8 @@ class Task {
     if (!title || title.length < 3) {
       throw new Error("O título da tarefa deve ter pelo menos 3 caracteres.");
     }
+
+    // Validação de Prioridade
     if (!Object.values(TASK_PRIORITY).includes(priority)) {
       throw new Error(
         `Prioridade inválida: ${priority}. Deve ser ${Object.values(
