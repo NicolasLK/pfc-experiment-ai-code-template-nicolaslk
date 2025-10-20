@@ -61,12 +61,13 @@ class CodeGenerator {
  */
 class Task {
   /**
+   * @param {number} id - ID único fornecido pelo Manager.
    * @param {string} title
    * @param {string} description
    * @param {string} priority
    * @param {string} [codePrefix='TASK']
    */
-  constructor(title, description, priority, codePrefix = "TASK") {
+  constructor(id, title, description, priority, codePrefix = "TASK") {
     // Validação inicial
     if (!title || title.length < 3) {
       throw new Error("O título da tarefa deve ter pelo menos 3 caracteres.");
@@ -79,7 +80,7 @@ class Task {
       );
     }
 
-    this.id = Date.now() + Math.random(); // ID simples baseado em tempo
+    this.id = id; // Usa o ID seguro
     this.code = CodeGenerator.generate(codePrefix); // Código único estilo Jira
     this.title = title;
     this.description = description;
@@ -164,6 +165,8 @@ class TodoManager {
   constructor() {
     /** @type {Task[]} */
     this.tasks = [];
+    /** @type {number} */
+    this.nextTaskId = 1;
   }
 
   // --- MÉTODOS CRUD ---
@@ -177,8 +180,11 @@ class TodoManager {
    * @returns {Task} A tarefa recém-criada.
    */
   createTask(title, description, priority, codePrefix = "TASK") {
-    // A validação é feita no construtor da classe Task
-    const newTask = new Task(title, description, priority, codePrefix);
+    // 1. Gera ID e incrementa
+    const newId = this.nextTaskId++;
+
+    // 2. Cria Task com o ID seguro
+    const newTask = new Task(newId, title, description, priority, codePrefix);
     this.tasks.push(newTask);
     return newTask;
   }

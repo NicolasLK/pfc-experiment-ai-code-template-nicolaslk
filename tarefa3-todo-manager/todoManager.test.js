@@ -8,8 +8,10 @@ const {
 describe("Sistema de Gerenciamento de Tarefas", () => {
   let manager;
 
-  // Setup: Garante que cada teste use uma instância nova do manager
-  // e que os contadores de código sejam zerados.
+  /**
+   * Setup: Garante que cada teste use uma instância nova do manager
+   * e que os contadores de código sejam zerados.
+   */
   beforeEach(() => {
     manager = new TodoManager();
     CodeGenerator.resetCounters();
